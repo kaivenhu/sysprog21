@@ -1,21 +1,23 @@
 
-CFLAGS += -std=gnu11 -g -Wall -W -Werror
+FLAGS := -g -Wall -W -Werror
+CFLAGS += -std=gnu11 $(FLAGS)
 
-SRC = $(wildcard ./*.c)
-OBJ = $(SRC:.c=.o)
-EXE = xs.exe
+CSRC = $(wildcard ./*.c)
+COBJ = $(CSRC:.c=.o)
+UNITTEST = xs-unittest.exe
 
-LDFLAGS += -lgtest -lgtest_main -lpthread
+.PHONY: all check clean $(UNITTEST)
 
-.PHONY: all clean $(EXE) $(OBJ)
+all: $(UNITTEST)
 
-all: $(EXE)
-
-$(EXE): $(OBJ)
+$(UNITTEST): $(COBJ)
 	$(CC) $(CFLAGS) -o $@ $^
 
-$(OBJ): %.o:%.c
+$(COBJ): %.o:%.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
+check: $(UNITTEST)
+	valgrind --leak-check=full ./$(UNITTEST)
+
 clean:
-	rm -f $(OBJ) $(EXE)
+	rm -f $(COBJ) $(UNITTEST)
