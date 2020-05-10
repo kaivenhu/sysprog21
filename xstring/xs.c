@@ -1,7 +1,24 @@
-#include <stddef.h>
 #include <string.h>
 
 #include "xs.h"
+
+static inline char *refcount_create(size_t size)
+{
+    RefCounted *rc = malloc(sizeof(RefCounted) + size - 1);
+    rc->refcnt = 1;
+    return &(rc->data[0]);
+}
+
+static inline char *refcount_realloc(const xs *x, size_t size)
+{
+    char *p = NULL;
+    assert(1 == refcount_get(x));
+    RefCounted *src = refcount_fromxs(x);
+    p = refcount_create(size);
+    memcpy(p, src->data, x->size + 1);
+    free(src);
+    return p;
+}
 
 xs *xs_new(xs *x, const void *p)
 {
@@ -11,7 +28,7 @@ xs *xs_new(xs *x, const void *p)
         x->capacity = ilog2(len) + 1;
         x->size = len - 1;
         x->is_ptr = true;
-        x->ptr = malloc((size_t) 1 << x->capacity);
+        x->ptr = refcount_create((size_t) 1 << x->capacity);
         memcpy(x->ptr, p, len);
     } else {
         memcpy(x->data, p, len);
@@ -27,11 +44,11 @@ xs *xs_grow(xs *x, size_t len)
         return x;
     len = ilog2(len) + 1;
     if (xs_is_ptr(x))
-        x->ptr = realloc(x->ptr, (size_t) 1 << len);
+        x->ptr = refcount_realloc(x, (size_t) 1 << len);
     else {
         char buf[16];
         memcpy(buf, x->data, 16);
-        x->ptr = malloc((size_t) 1 << len);
+        x->ptr = refcount_create((size_t) 1 << len);
         memcpy(x->ptr, buf, 16);
     }
     x->is_ptr = true;

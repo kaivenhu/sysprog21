@@ -3,6 +3,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stddef.h>
+#include <assert.h>
+
+typedef struct RefCounted {
+    size_t refcnt;
+    char data[1];
+} RefCounted;
 
 typedef union {
     /* allow strings up to 15 bytes to stay on the stack
@@ -37,6 +44,29 @@ static inline bool xs_is_ptr(const xs *x)
 {
     return x->is_ptr;
 }
+
+static inline RefCounted *refcount_fromxs(const xs *p)
+{
+    assert(xs_is_ptr(p));
+    return (RefCounted *)((void *)p->ptr - offsetof(RefCounted, data));
+}
+
+static inline size_t refcount_get(const xs *p)
+{
+    return xs_is_ptr(p)
+            ? ((RefCounted *) refcount_fromxs(p))->refcnt
+            : 1;
+}
+
+static inline void refcount_increment(const xs *p)
+{
+    ++((RefCounted *) refcount_fromxs(p))->refcnt;
+}
+
+static inline void refcount_decrement(const xs *p)
+{
+    --((RefCounted *) refcount_fromxs(p))->refcnt;
+}
 static inline size_t xs_size(const xs *x)
 {
     return xs_is_ptr(x) ? x->size : (size_t) (15 - x->space_left);
@@ -48,6 +78,10 @@ static inline char *xs_data(const xs *x)
 static inline size_t xs_capacity(const xs *x)
 {
     return xs_is_ptr(x) ? ((size_t) 1 << x->capacity) - 1 : 15;
+}
+static inline bool xs_is_free(const xs *x)
+{
+    return (0 == refcount_get(x));
 }
 
 #define xs_literal_empty() \
@@ -79,11 +113,16 @@ static inline xs *xs_newempty(xs *x)
 
 static inline xs *xs_free(xs *x)
 {
-    if (xs_is_ptr(x))
-        free(xs_data(x));
+    if (xs_is_ptr(x)) {
+        refcount_decrement(x);
+        if (xs_is_free(x)) {
+            free(refcount_fromxs(x));
+        }
+    }
     return xs_newempty(x);
 }
 
+xs *xs_grow(xs *x, size_t len);
 xs *xs_concat(xs *string, const xs *prefix, const xs *suffix);
 xs *xs_trim(xs *x, const char *trimset);
 

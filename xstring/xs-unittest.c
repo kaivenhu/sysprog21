@@ -46,6 +46,10 @@ void test(void)
     check(xs_data(&string), "(((((((((foobarbar)))))))))");
     xs_concat(&string, &prefix, &suffix);
     check(xs_data(&string), "((((((((((((foobarbar))))))))))))");
+    xs_grow(&string, xs_capacity(&string) + 1);
+    check(xs_data(&string), "((((((((((((foobarbar))))))))))))");
+    xs_trim(&string, "()");
+    check(xs_data(&string), "foobarbar");
 
     xs_free(&string);
     xs_free(&prefix);
