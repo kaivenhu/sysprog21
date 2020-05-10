@@ -3,12 +3,12 @@
 
 #include "xs.h"
 
-#define check(x, y)                   \
-    do {                              \
-        if (0 != strcmp(x, y)) {      \
+#define check(x, y)                                                   \
+    do {                                                              \
+        if (0 != strcmp(x, y)) {                                      \
             printf("Failed %s with %s on line %d\n", x, y, __LINE__); \
-            exit(1); \
-        }                             \
+            exit(1);                                                  \
+        }                                                             \
     } while (0)
 
 

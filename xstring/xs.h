@@ -1,10 +1,10 @@
 #ifndef XSTRING_H_
 #define XSTRING_H_
+#include <assert.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stddef.h>
-#include <assert.h>
 
 typedef struct RefCounted {
     size_t refcnt;
@@ -48,14 +48,12 @@ static inline bool xs_is_ptr(const xs *x)
 static inline RefCounted *refcount_fromxs(const xs *p)
 {
     assert(xs_is_ptr(p));
-    return (RefCounted *)((void *)p->ptr - offsetof(RefCounted, data));
+    return (RefCounted *) ((void *) p->ptr - offsetof(RefCounted, data));
 }
 
 static inline size_t refcount_get(const xs *p)
 {
-    return xs_is_ptr(p)
-            ? ((RefCounted *) refcount_fromxs(p))->refcnt
-            : 1;
+    return xs_is_ptr(p) ? ((RefCounted *) refcount_fromxs(p))->refcnt : 1;
 }
 
 static inline void refcount_increment(const xs *p)
@@ -69,7 +67,7 @@ static inline void refcount_decrement(const xs *p)
 }
 static inline size_t xs_size(const xs *x)
 {
-    return xs_is_ptr(x) ? x->size : (size_t) (15 - x->space_left);
+    return xs_is_ptr(x) ? x->size : (size_t)(15 - x->space_left);
 }
 static inline char *xs_data(const xs *x)
 {
