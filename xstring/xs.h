@@ -123,5 +123,6 @@ static inline xs *xs_free(xs *x)
 xs *xs_grow(xs *x, size_t len);
 xs *xs_concat(xs *string, const xs *prefix, const xs *suffix);
 xs *xs_trim(xs *x, const char *trimset);
+xs *xs_copy(xs *src, xs *dest);
 
 #endif /* XSTRING_H_ */

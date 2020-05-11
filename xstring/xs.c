@@ -56,6 +56,17 @@ xs *xs_grow(xs *x, size_t len)
     return x;
 }
 
+static xs *xs_cow(xs *x)
+{
+    if (1 < refcount_get(x)) {
+        xs tmps = xs_literal_empty();
+        xs_grow(&tmps, x->capacity);
+        xs_free(x);
+        *x = tmps;
+    }
+    return x;
+}
+
 xs *xs_concat(xs *string, const xs *prefix, const xs *suffix)
 {
     size_t pres = xs_size(prefix), sufs = xs_size(suffix),
@@ -65,6 +76,7 @@ xs *xs_concat(xs *string, const xs *prefix, const xs *suffix)
          *data = xs_data(string);
 
     if (size + pres + sufs <= capacity) {
+        data = xs_data(xs_cow(string));
         memmove(data + pres, data, size);
         memcpy(data, pre, pres);
         memcpy(data + pres + size, suf, sufs + 1);
@@ -112,6 +124,8 @@ xs *xs_trim(xs *x, const char *trimset)
     dataptr += i;
     slen -= i;
 
+    orig = xs_data(xs_cow(x));
+
     /* reserved space as a buffer on the heap.
      * Do not reallocate immediately. Instead, reuse it as possible.
      * Do not shrink to in place if < 16 bytes.
@@ -128,4 +142,15 @@ xs *xs_trim(xs *x, const char *trimset)
     return x;
 #undef check_bit
 #undef set_bit
+}
+
+xs *xs_copy(xs *src, xs *dest)
+{
+    *dest = *src;
+
+    if (xs_is_ptr(dest)) {
+        refcount_increment(dest);
+    }
+
+    return dest;
 }
