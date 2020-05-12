@@ -103,10 +103,52 @@ void copy_on_write(void)
     return;
 }
 
+void token(void)
+{
+    const char *tok = NULL;
+    char *saveptr = NULL;
+    xs *x = xs_new(&xs_literal_empty(), "   ; aaa ; ; bbb; ccc");
+    xs *y = xs_copy(x, &xs_literal_empty());
+
+    check(xs_data(y), "   ; aaa ; ; bbb; ccc");
+
+    tok = xs_tok_r(x, " ;", &saveptr);
+    check(tok, "aaa");
+    tok = xs_tok_r(NULL, " ;", &saveptr);
+    check(tok, "bbb");
+    tok = xs_tok_r(NULL, " ;", &saveptr);
+    check(tok, "ccc");
+    tok = xs_tok_r(NULL, " ;", &saveptr);
+    check(xs_data(x), "   ; aaa");
+    check(xs_data(y), "   ; aaa ; ; bbb; ccc");
+    if (tok) {
+        printf("invalid token %d\n", __LINE__);
+    }
+    x = xs_free(x);
+    y = xs_free(y);
+    x = xs_new(&xs_literal_empty(), "   ; ddd;");
+    tok = xs_tok_r(x, " ;", &saveptr);
+    check(tok, "ddd");
+    tok = xs_tok_r(NULL, " ;", &saveptr);
+    check(xs_data(x), "   ; ddd");
+    if (tok) {
+        printf("invalid token %d\n", __LINE__);
+    }
+    y = xs_new(&xs_literal_empty(), "   ; ;");
+    tok = xs_tok_r(y, " ;", &saveptr);
+    if (tok) {
+        printf("invalid token %d\n", __LINE__);
+    }
+    check(xs_data(y), "   ; ;");
+    xs_free(x);
+    xs_free(y);
+}
+
 int main()
 {
     test();
     copy_on_write();
+    token();
 
     printf("PASS !!!\n");
     return 0;
