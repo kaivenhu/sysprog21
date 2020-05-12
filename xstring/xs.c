@@ -56,11 +56,12 @@ xs *xs_grow(xs *x, size_t len)
     return x;
 }
 
-static xs *xs_cow(xs *x)
+static inline xs *xs_cow(xs *x)
 {
     if (1 < refcount_get(x)) {
         xs tmps = xs_literal_empty();
-        xs_grow(&tmps, x->capacity);
+        xs_grow(&tmps, xs_capacity(x));
+        memcpy(xs_data(&tmps), xs_data(x), xs_size(x) + 1);
         xs_free(x);
         *x = tmps;
     }
@@ -140,6 +141,42 @@ xs *xs_trim(xs *x, const char *trimset)
     else
         x->space_left = 15 - slen;
     return x;
+}
+
+char *xs_tok_r(xs *x, const char *delim, char **saveptr) {
+    assert(saveptr && delim);
+    if (!delim[0])
+        return xs_data(x);
+
+    char *orig = (x) ? xs_data(xs_cow(x)) : *saveptr;
+
+    /* similar to strspn/strpbrk but it operates on binary data */
+    uint8_t mask[32] = {0};
+
+    size_t i, start, slen = strlen(orig), delimlen = strlen(delim);
+
+    for (i = 0; i < delimlen; ++i)
+        set_bit(delim[i]);
+
+    for (i = 0; i < slen; ++i) {
+        if (!check_bit(orig[i]))
+            break;
+    }
+    if (!*(orig + i))
+        return NULL;
+    start = i;
+
+    for (; i < slen; ++i) {
+        if (check_bit(orig[i])) {
+            orig[i] = '\0';
+            ++i;
+            break;
+        }
+    }
+
+    *saveptr = orig + i;
+
+    return orig + start;
 #undef check_bit
 #undef set_bit
 }

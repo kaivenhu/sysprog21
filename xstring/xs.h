@@ -124,5 +124,6 @@ xs *xs_grow(xs *x, size_t len);
 xs *xs_concat(xs *string, const xs *prefix, const xs *suffix);
 xs *xs_trim(xs *x, const char *trimset);
 xs *xs_copy(xs *src, xs *dest);
+char *xs_tok_r(xs *x, const char *delim, char **saveptr);
 
 #endif /* XSTRING_H_ */
