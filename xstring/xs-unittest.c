@@ -144,12 +144,61 @@ void token(void)
     xs_free(y);
 }
 
-int main()
+void checker(void)
 {
     test();
     copy_on_write();
     token();
-
     printf("PASS !!!\n");
+}
+
+#define XS_ARRAY_SIZE 5000
+#define MAX_STRING_SIZE 4096
+
+void locality(void)
+{
+    xs *x = NULL;
+    char *str = malloc(sizeof(char) * MAX_STRING_SIZE);
+    xs **arr_ptr = (xs **) calloc(XS_ARRAY_SIZE, sizeof(xs *));
+
+    for (int i = 0; i < MAX_STRING_SIZE; ++i)
+        str[i] = 'a' + (char) (i % 26);
+
+    str[MAX_STRING_SIZE - 1] = '\0';
+    x = xs_new(&xs_literal_empty(), str);
+
+    for (int i = 0; i < XS_ARRAY_SIZE; ++i) {
+        arr_ptr[i] = (xs *) calloc(1, sizeof(xs));
+        *(arr_ptr[i]) = xs_literal_empty();
+    }
+
+    for (int i = 0 ; i < XS_ARRAY_SIZE; ++i)
+        arr_ptr[i] = xs_copy(x, arr_ptr[i]);
+
+    for (int j = 0; j < 1000; ++j)
+        for (int i = 0 ; i < XS_ARRAY_SIZE; ++i)
+            check((arr_ptr[i])->ptr, str);
+
+    for (int i = 0; i < XS_ARRAY_SIZE; ++i) {
+        xs_free(arr_ptr[i]);
+        free(arr_ptr[i]);
+    }
+    xs_free(x);
+    free(str);
+    free(arr_ptr);
+}
+
+int main(int argc, char *argv[])
+{
+    if (2 > argc && NULL == argv[1]) {
+        printf("Usage: %s <option>\n", argv[0]);
+        exit(1);
+    }
+    if (0 == strcmp(argv[1], "check")) {
+        checker();
+    } else if (0 == strcmp(argv[1], "locality")) {
+        locality();
+    }
+
     return 0;
 }

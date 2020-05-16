@@ -186,7 +186,12 @@ xs *xs_copy(xs *src, xs *dest)
     *dest = *src;
 
     if (xs_is_ptr(dest)) {
+#ifdef DISABLE_COW
+        dest->ptr = refcount_create((size_t) 1 << src->capacity);
+        memcpy(dest->ptr, src->ptr, xs_size(src) + 1);
+#else /* DISABLE_COW */
         refcount_increment(dest);
+#endif /* DISABLE_COW */
     }
 
     return dest;
