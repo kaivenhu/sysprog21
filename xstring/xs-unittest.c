@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "xs.h"
+#include "utime.h"
 
 #define check(x, y)                                                   \
     do {                                                              \
@@ -153,18 +155,20 @@ void checker(void)
 }
 
 #define XS_ARRAY_SIZE 5000
-#define MAX_STRING_SIZE 4096
+#define MAX_STRING_ORDER 12
+#define MAX_STRING_SIZE (1 << MAX_STRING_ORDER)
 
-void locality(void)
+static void cow_benchmark(int run, int size)
 {
+    assert(0 < run && 0 < size);
     xs *x = NULL;
-    char *str = malloc(sizeof(char) * MAX_STRING_SIZE);
+    char *str = malloc(sizeof(char) * size);
     xs **arr_ptr = (xs **) calloc(XS_ARRAY_SIZE, sizeof(xs *));
 
-    for (int i = 0; i < MAX_STRING_SIZE; ++i)
+    for (int i = 0; i < size; ++i)
         str[i] = 'a' + (char) (i % 26);
 
-    str[MAX_STRING_SIZE - 1] = '\0';
+    str[size - 1] = '\0';
     x = xs_new(&xs_literal_empty(), str);
 
     for (int i = 0; i < XS_ARRAY_SIZE; ++i) {
@@ -175,9 +179,9 @@ void locality(void)
     for (int i = 0 ; i < XS_ARRAY_SIZE; ++i)
         arr_ptr[i] = xs_copy(x, arr_ptr[i]);
 
-    for (int j = 0; j < 1000; ++j)
+    for (int j = 0; j < run; ++j)
         for (int i = 0 ; i < XS_ARRAY_SIZE; ++i)
-            check((arr_ptr[i])->ptr, str);
+            check(xs_data(arr_ptr[i]), str);
 
     for (int i = 0; i < XS_ARRAY_SIZE; ++i) {
         xs_free(arr_ptr[i]);
@@ -186,6 +190,48 @@ void locality(void)
     xs_free(x);
     free(str);
     free(arr_ptr);
+}
+
+void locality(void)
+{
+    cow_benchmark(1000, MAX_STRING_SIZE);
+}
+
+typedef struct BenchmarkResult {
+    double mean[MAX_STRING_ORDER];
+    double var[MAX_STRING_ORDER];
+} BenchmarkResult;
+
+static inline void cal_time(const unsigned int run,
+                            const double t,
+                            double *mean,
+                            double *var)
+{
+    double delta = t - *mean;
+    *mean += (delta / (double) run);
+    *var += delta * (t - *mean);
+}
+
+void benchmark(void)
+{
+    struct timespec prev_t, cur_t;
+    BenchmarkResult result;
+    memset(&result, 0, sizeof(result));
+
+    for (int i = 0; i < 1000; ++i) {
+        for (int j = 0; j < MAX_STRING_ORDER; ++j) {
+            clock_gettime(CLOCK_BOOTTIME, &prev_t);
+            cow_benchmark(1, (1 << (j + 1)));
+            clock_gettime(CLOCK_BOOTTIME, &cur_t);
+            cal_time(i + 1,
+                    (double) timespec_to_ns(timespec_diff(prev_t, cur_t)),
+                    &(result.mean[j]), &(result.var[j]));
+        }
+    }
+    for (int i = 0; i < MAX_STRING_ORDER; ++i) {
+        printf("%d %lf %lf\n", (1 << (i + 1)), result.mean[i],
+                result.var[i]);
+    }
 }
 
 int main(int argc, char *argv[])
@@ -198,6 +244,8 @@ int main(int argc, char *argv[])
         checker();
     } else if (0 == strcmp(argv[1], "locality")) {
         locality();
+    } else if (0 == strcmp(argv[1], "benchmark")) {
+        benchmark();
     }
 
     return 0;

@@ -27,6 +27,11 @@ if [ "${option}" == "locality" ]; then
     sudo perf stat --repeat 10 -e "${PERF_LIST}" taskset 0x1 ./xs-unittest.exe locality
 fi
 
+if [ "${option}" == "benchmark" ]; then
+    taskset 0x1 ./xs-unittest.exe benchmark > result.dat
+    gnuplot script/plot.gp
+fi
+
 
 sudo sh -c "echo $ORIG_NTURBO > /sys/devices/system/cpu/intel_pstate/no_turbo"
 sudo sh -c "echo $ORIG_SCL > /sys/devices/system/cpu/cpu$CPUID/cpufreq/scaling_governor"
