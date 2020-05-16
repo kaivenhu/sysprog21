@@ -143,7 +143,8 @@ xs *xs_trim(xs *x, const char *trimset)
     return x;
 }
 
-char *xs_tok_r(xs *x, const char *delim, char **saveptr) {
+char *xs_tok_r(xs *x, const char *delim, char **saveptr)
+{
     assert(saveptr && delim);
     if (!delim[0])
         return xs_data(x);
@@ -189,7 +190,7 @@ xs *xs_copy(xs *src, xs *dest)
 #ifdef DISABLE_COW
         dest->ptr = refcount_create((size_t) 1 << src->capacity);
         memcpy(dest->ptr, src->ptr, xs_size(src) + 1);
-#else /* DISABLE_COW */
+#else  /* DISABLE_COW */
         refcount_increment(dest);
 #endif /* DISABLE_COW */
     }

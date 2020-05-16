@@ -2,8 +2,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "xs.h"
 #include "utime.h"
+#include "xs.h"
 
 #define check(x, y)                                                   \
     do {                                                              \
@@ -81,22 +81,39 @@ void copy_on_write(void)
     xs_concat(z, x, x);
     xs_trim(w, "0123");
     check(xs_data(x), "0123456789abcdef");
-    check(xs_data(y), "0123456789abcdef" "0123456789abcdef");
-    check(xs_data(z), "0123456789abcdef" "0123456789abcdef" "0123456789abcdef");
+    check(xs_data(y),
+          "0123456789abcdef"
+          "0123456789abcdef");
+    check(xs_data(z),
+          "0123456789abcdef"
+          "0123456789abcdef"
+          "0123456789abcdef");
     check(xs_data(w), "456789abcdef");
 
     w = xs_free(w);
     z = xs_free(z);
     w = xs_copy(y, &xs_literal_empty());
     z = xs_copy(y, &xs_literal_empty());
-    check(xs_data(y), "0123456789abcdef" "0123456789abcdef");
-    check(xs_data(w), "0123456789abcdef" "0123456789abcdef");
-    check(xs_data(z), "0123456789abcdef" "0123456789abcdef");
+    check(xs_data(y),
+          "0123456789abcdef"
+          "0123456789abcdef");
+    check(xs_data(w),
+          "0123456789abcdef"
+          "0123456789abcdef");
+    check(xs_data(z),
+          "0123456789abcdef"
+          "0123456789abcdef");
 
     xs_concat(x, &empty, z);
-    check(xs_data(x), "0123456789abcdef" "0123456789abcdef" "0123456789abcdef");
+    check(xs_data(x),
+          "0123456789abcdef"
+          "0123456789abcdef"
+          "0123456789abcdef");
     xs_trim(x, "0");
-    check(xs_data(x), "123456789abcdef" "0123456789abcdef" "0123456789abcdef");
+    check(xs_data(x),
+          "123456789abcdef"
+          "0123456789abcdef"
+          "0123456789abcdef");
 
     xs_free(x);
     xs_free(y);
@@ -176,11 +193,11 @@ static void cow_benchmark(int run, int size)
         *(arr_ptr[i]) = xs_literal_empty();
     }
 
-    for (int i = 0 ; i < XS_ARRAY_SIZE; ++i)
+    for (int i = 0; i < XS_ARRAY_SIZE; ++i)
         arr_ptr[i] = xs_copy(x, arr_ptr[i]);
 
     for (int j = 0; j < run; ++j)
-        for (int i = 0 ; i < XS_ARRAY_SIZE; ++i)
+        for (int i = 0; i < XS_ARRAY_SIZE; ++i)
             check(xs_data(arr_ptr[i]), str);
 
     for (int i = 0; i < XS_ARRAY_SIZE; ++i) {
@@ -224,13 +241,12 @@ void benchmark(void)
             cow_benchmark(1, (1 << (j + 1)));
             clock_gettime(CLOCK_BOOTTIME, &cur_t);
             cal_time(i + 1,
-                    (double) timespec_to_ns(timespec_diff(prev_t, cur_t)),
-                    &(result.mean[j]), &(result.var[j]));
+                     (double) timespec_to_ns(timespec_diff(prev_t, cur_t)),
+                     &(result.mean[j]), &(result.var[j]));
         }
     }
     for (int i = 0; i < MAX_STRING_ORDER; ++i) {
-        printf("%d %lf %lf\n", (1 << (i + 1)), result.mean[i],
-                result.var[i]);
+        printf("%d %lf %lf\n", (1 << (i + 1)), result.mean[i], result.var[i]);
     }
 }
 
