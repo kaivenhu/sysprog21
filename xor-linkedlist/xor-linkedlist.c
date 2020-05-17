@@ -56,8 +56,8 @@ list *sort(list *start)
                 start = merge = left;
                 merge->addr = NULL;
             } else {
-                merge->addr = LL1;
-                left->addr = LL2;
+                merge->addr = XOR(merge->addr, left);
+                left->addr = merge;
                 merge = left;
             }
             left = next;
@@ -70,8 +70,8 @@ list *sort(list *start)
                 start = merge = right;
                 merge->addr = NULL;
             } else {
-                merge->addr = RR1;
-                right->addr = RR2;
+                merge->addr = XOR(merge->addr, right);
+                right->addr = merge;
                 merge = right;
             }
             right = next;
