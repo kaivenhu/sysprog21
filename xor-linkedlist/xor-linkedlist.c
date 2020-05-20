@@ -1,13 +1,6 @@
-#include <stdint.h>
 #include <stdlib.h>
 
-typedef struct __list list;
-struct __list {
-    int data;
-    struct __list *addr;
-};
-
-#define XOR(a, b) ((list *) ((uintptr_t)(a) ^ (uintptr_t)(b)))
+#include "xor-linkedlist.h"
 
 void insert_node(list **l, int d)
 {
