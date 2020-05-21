@@ -27,14 +27,33 @@ void delete_list(list *l)
     }
 }
 
+static inline list *to_half(list *head)
+{
+    list *prev = NULL;
+    list *fast = head;
+    list *fast_next = head->addr;
+    if (!head)
+        return head;
+
+    while (fast && fast_next) {
+        list *tmp = head;
+        head = XOR(head->addr, prev);
+        prev = tmp;
+        fast = XOR(fast_next->addr, fast);
+        if (fast)
+            fast_next = XOR(fast->addr, fast_next);
+    }
+    prev->addr = XOR(prev->addr, head);
+    head->addr = XOR(head->addr, prev);
+    return head;
+}
+
 list *sort(list *start)
 {
     if (!start || !start->addr)
         return start;
 
-    list *left = start, *right = start->addr;
-    left->addr = NULL;
-    right->addr = XOR(right->addr, left);
+    list *left = start, *right = to_half(start);
 
     left = sort(left);
     right = sort(right);
