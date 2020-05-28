@@ -12,6 +12,13 @@ struct __list {
 
 void insert_node(list **l, int d);
 void delete_list(list *l);
-list *sort(list *start);
+
+#define sort(x) merge_sort(x)
+
+
+list *insertion_sort(list *head);
+
+#define merge_sort(x) __merge_sort(x, 1)
+list *__merge_sort(list *start, int min_merge_size);
 
 #endif /* XOR_LINKEDLIST_H_ */

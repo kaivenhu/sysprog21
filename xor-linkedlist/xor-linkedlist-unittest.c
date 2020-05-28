@@ -5,8 +5,10 @@
 #include <time.h>
 
 #include "xor-linkedlist.h"
+#include "utime.h"
 
 #define OPTION_CHECK "check"
+#define OPTION_RAMPING "ramping"
 
 int cmp(const void *a, const void *b)
 {
@@ -80,7 +82,7 @@ void randomcheck(void)
         size_t num = (rand() % 1000) + 1;
         int *x = (int *) calloc(num, sizeof(int));
         for (size_t j = 0; j < num; ++j)
-            x[j] = (rand() % 10000) - 500;
+            x[j] = (rand() % 10000) - 5000;
 
         list *data = sort(create_list(x, num));
         check_sorted(data, x, num, "rand");
@@ -90,6 +92,54 @@ void randomcheck(void)
     printf("Random test is PASS !!!\n");
 }
 
+static inline void cal_time(const unsigned int run,
+                            const double t,
+                            double *mean,
+                            double *var)
+{
+    double delta = t - *mean;
+    *mean += (delta / (double) run);
+    *var += delta * (t - *mean);
+}
+
+#define MAX_MERGE_SIZE 11
+#define MAX_ARRAY_LENGTH (65536)
+
+typedef struct RampingResult {
+    double mean[MAX_MERGE_SIZE];
+    double var[MAX_MERGE_SIZE];
+} RampingResult;
+
+void ramping(void)
+{
+    struct timespec prev_t, cur_t;
+    RampingResult result;
+    memset(&result, 0, sizeof(result));
+
+    for (int i = 0; i < 5; ++i) {
+        int *x = (int *) calloc(MAX_ARRAY_LENGTH, sizeof(int));
+
+        for (size_t j = 0; j < MAX_ARRAY_LENGTH; ++j)
+            x[j] = (rand() % 10000) - 5000;
+
+        for (int j = 1; j < MAX_MERGE_SIZE; ++j) {
+            list *data = create_list(x, MAX_ARRAY_LENGTH);
+            clock_gettime(CLOCK_BOOTTIME, &prev_t);
+            data = __merge_sort(data, 1 << j);
+            clock_gettime(CLOCK_BOOTTIME, &cur_t);
+            cal_time(i + 1,
+                     (double) timespec_to_ns(timespec_diff(prev_t, cur_t)),
+                     &(result.mean[j]), &(result.var[j]));
+            check_sorted(data, x, MAX_ARRAY_LENGTH, "rand");
+            delete_list(data);
+        }
+
+        free(x);
+    }
+    for (int i = 1; i < MAX_MERGE_SIZE; ++i) {
+        printf("%3d %lf %lf\n", 1 << i, result.mean[i], result.var[i]);
+    }
+}
 
 int main(int argc, char *argv[])
 {
@@ -101,6 +151,8 @@ int main(int argc, char *argv[])
     if (0 == strcmp(argv[1], OPTION_CHECK)) {
         check();
         randomcheck();
+    } else if (0 == strcmp(argv[1], OPTION_RAMPING)) {
+        ramping();
     } else {
         printf("Usage : %s [%s]\n", argv[0], OPTION_CHECK);
         exit(1);

@@ -5,8 +5,9 @@ CFLAGS += -std=gnu11 $(FLAGS)
 CSRC = $(wildcard ./*.c)
 COBJ = $(CSRC:.c=.o)
 EXE = xor-linkedlist-unittest.exe
+RESULT = result.dat
 
-.PHONY: all clean $(EXE) check
+.PHONY: all clean $(EXE) check ramping
 
 all: $(EXE)
 
@@ -19,5 +20,8 @@ $(COBJ): %.o:%.c
 check: $(EXE)
 	valgrind --leak-check=full ./$(EXE) check
 
+ramping: $(EXE)
+	@script/performance.sh
+
 clean:
-	rm -f $(COBJ) $(EXE)
+	rm -f $(COBJ) $(EXE) $(RESULT)
