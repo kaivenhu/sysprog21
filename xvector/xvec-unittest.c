@@ -1,3 +1,7 @@
+#include <stdio.h>
+
+#include "xvec.h"
+
 int main()
 {
     v(float, 3, vec1);
