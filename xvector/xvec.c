@@ -13,7 +13,7 @@
     }
 
 #define NEXT_POWER_OF_2(s) \
-    VV1 ? s : (size_t) 1 << (64 - __builtin_clzl(s)) /* next power of 2 */
+    (0 == (s & (s - 1))) ? s : (size_t) 1 << (64 - __builtin_clzl(s)) /* next power of 2 */
 
 #define v(t, s, name, ...)                                              \
     union {                                                             \
@@ -41,15 +41,13 @@
     __vec_push_back(&v, &(__typeof__(v.buf[0])[]){e}, vec_elemsize(v), \
                     vec_capacity(v))
 
-#define vec_pop_back(v) (void) (VV2)
+#define vec_pop_back(v) (void) (--v.size)
 
 /* This function attribute specifies function parameters that are not supposed
  * to be null pointers. This enables the compiler to generate a warning on
  * encountering such a parameter.
  */
-#define NON_NULL __attribute__((nonnull))
-
-static NON_NULL void vec_free(void *p)
+__attribute__((nonnull)) void vec_free(void *p)
 {
     STRUCT_BODY(void) *s = p;
     if (s->on_heap)
@@ -61,7 +59,7 @@ static inline int ilog2(size_t n)
     return 64 - __builtin_clzl(n) - ((n & (n - 1)) == 0);
 }
 
-static NON_NULL void __vec_reserve(void *vec,
+__attribute__((nonnull)) void __vec_reserve(void *vec,
                                    size_t n,
                                    size_t elemsize,
                                    size_t capacity)
@@ -88,7 +86,7 @@ static NON_NULL void __vec_reserve(void *vec,
     }
 }
 
-static NON_NULL void __vec_push_back(void *restrict vec,
+__attribute__((nonnull)) void __vec_push_back(void *restrict vec,
                                      void *restrict e,
                                      size_t elemsize,
                                      size_t capacity)
