@@ -1,5 +1,6 @@
 #ifndef XVECTOR_H_
 #define XVECTOR_H_
+#include <assert.h>
 #include <stddef.h>
 
 /* vector with small buffer optimization */
@@ -34,14 +35,14 @@
 #define vec_data(v) (v.on_heap ? v.ptr : v.buf) /* always contiguous buffer */
 
 #define vec_elemsize(v) sizeof(v.buf[0])
-#define vec_pos(v, n) vec_data(v)[n] /* lvalue */
+#define vec_pos(v, n) ((__typeof__(v.buf[0]) *) __vec_pos(&v, n))[n]
 
 #define vec_reserve(v, n) __vec_reserve(&v, n, vec_elemsize(v), vec_capacity(v))
 #define vec_push_back(v, e)                                            \
     __vec_push_back(&v, &(__typeof__(v.buf[0])[]){e}, vec_elemsize(v), \
                     vec_capacity(v))
 
-#define vec_pop_back(v) (void) (--v.size)
+#define vec_pop_back(v) (void) (v.size -= !!v.size)
 
 __attribute__((nonnull)) void vec_free(void *p);
 
@@ -53,5 +54,18 @@ __attribute__((nonnull)) void __vec_push_back(void *restrict vec,
                                               void *restrict e,
                                               size_t elemsize,
                                               size_t capacity);
+
+static inline __attribute__((nonnull)) void *__vec_pos(void *vec, size_t n)
+{
+    union {
+        STRUCT_BODY(void);
+        struct {
+            size_t filler;
+            char buf[];
+        };
+    } *v = vec;
+    assert(n < v->size);
+    return v->on_heap ? v->ptr : v->buf;
+}
 
 #endif /* XVECTOR_H_ */
