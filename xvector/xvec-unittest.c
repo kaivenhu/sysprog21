@@ -1,8 +1,12 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "xvec.h"
 
-int main()
+#define OPTION_CHECK "check"
+
+void check(void)
 {
     v(float, 3, vec1);
     v(int, 2, vec2, 13, 42);
@@ -48,5 +52,22 @@ int main()
     vec_pop_back(vec1);
     display(vec1);
 
+#undef display
+}
+
+
+int main(int argc, char *argv[])
+{
+    if (2 > argc || NULL == argv[1]) {
+        printf("Usage : %s [%s]\n", argv[0], OPTION_CHECK);
+        exit(1);
+    }
+
+    if (0 == strcmp(argv[1], OPTION_CHECK)) {
+        check();
+    } else {
+        printf("Usage : %s [%s]\n", argv[0], argv[1]);
+        exit(1);
+    }
     return 0;
 }

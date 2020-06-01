@@ -7,7 +7,7 @@ COBJ = $(CSRC:.c=.o)
 EXE = xvec-unittest.exe
 RESULT = result.dat
 
-.PHONY: all clean $(EXE)
+.PHONY: all clean $(EXE) check
 
 all: $(EXE)
 
@@ -16,6 +16,9 @@ $(EXE): $(COBJ)
 
 $(COBJ): %.o:%.c
 	$(CC) $(CFLAGS) -c -o $@ $^
+
+check: $(EXE)
+	valgrind --leak-check=full ./$(EXE) check
 
 clean:
 	rm -f $(COBJ) $(EXE) $(RESULT)
