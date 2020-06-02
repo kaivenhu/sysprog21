@@ -75,3 +75,62 @@ __attribute__((nonnull)) void __vec_push_back(void *restrict vec,
             memcpy(&v->buf[v->size++ * elemsize], e, elemsize);
     }
 }
+
+__attribute__((nonnull)) void __vec_insert(void *restrict vec,
+                                           size_t index,
+                                           void *restrict e,
+                                           size_t elemsize,
+                                           size_t capacity)
+{
+    char *ptr = NULL;
+    union {
+        STRUCT_BODY(char);
+        struct {
+            size_t filler;
+            char buf[];
+        };
+    } *v = vec;
+
+    assert(index < v->size);
+
+    if (v->on_heap) {
+        if (v->size == capacity)
+            v->ptr = realloc(v->ptr, elemsize * (size_t) 1 << ++v->capacity);
+        ptr = v->ptr;
+    } else {
+        if (v->size == capacity) {
+            void *tmp =
+                malloc(elemsize * (size_t) 1 << (v->capacity = capacity + 1));
+            memcpy(tmp, v->buf, elemsize * v->size);
+            v->ptr = tmp;
+            v->on_heap = 1;
+            ptr = v->ptr;
+        } else {
+            ptr = v->buf;
+        }
+    }
+    memmove(&ptr[(1 + index) * elemsize], &ptr[index * elemsize],
+            (v->size - index) * elemsize);
+    memcpy(&ptr[index * elemsize], e, elemsize);
+    ++(v->size);
+}
+
+__attribute__((nonnull)) void __vec_erase(void *restrict vec,
+                                          size_t index,
+                                          size_t elemsize)
+{
+    union {
+        STRUCT_BODY(char);
+        struct {
+            size_t filler;
+            char buf[];
+        };
+    } *v = vec;
+    assert(index < v->size);
+
+    char *ptr = (v->on_heap) ? v->ptr : v->buf;
+
+    memmove(&ptr[index * elemsize], &ptr[(1 + index) * elemsize],
+            (v->size - index) * elemsize);
+    --(v->size);
+}

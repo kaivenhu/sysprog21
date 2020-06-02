@@ -10,6 +10,7 @@ void check(void)
 {
     v(float, 3, vec1);
     v(int, 2, vec2, 13, 42);
+    v(double, 2, vec3, 99.99);
 
     printf("pos(vec2,0)=%d, pos(vec2,1)=%d\n", vec_pos(vec2, 0),
            vec_pos(vec2, 1));
@@ -51,6 +52,19 @@ void check(void)
     display(vec1);
     vec_pop_back(vec1);
     display(vec1);
+
+    for (int i = 0; i <= 4; ++i) {
+        vec_insert(vec3, i, i);
+        display(vec3);
+    }
+    for (int i = 0; i <= 4; ++i) {
+        vec_insert(vec3, 1, i);
+        display(vec3);
+    }
+    for (int i = 0; i <= 8; ++i) {
+        vec_erase(vec3, 1);
+        display(vec3);
+    }
 
 #undef display
 }

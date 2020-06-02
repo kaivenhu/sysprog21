@@ -41,8 +41,12 @@
 #define vec_push_back(v, e)                                            \
     __vec_push_back(&v, &(__typeof__(v.buf[0])[]){e}, vec_elemsize(v), \
                     vec_capacity(v))
+#define vec_insert(v, i, e)                                            \
+    __vec_insert(&v, i, &(__typeof__(v.buf[0])[]){e}, vec_elemsize(v), \
+                 vec_capacity(v))
 
 #define vec_pop_back(v) (void) (v.size -= !!v.size)
+#define vec_erase(v, i) __vec_erase(&v, i, vec_elemsize(v))
 
 __attribute__((nonnull)) void vec_free(void *p);
 
@@ -54,6 +58,14 @@ __attribute__((nonnull)) void __vec_push_back(void *restrict vec,
                                               void *restrict e,
                                               size_t elemsize,
                                               size_t capacity);
+__attribute__((nonnull)) void __vec_insert(void *restrict vec,
+                                           size_t index,
+                                           void *restrict e,
+                                           size_t elemsize,
+                                           size_t capacity);
+__attribute__((nonnull)) void __vec_erase(void *restrict vec,
+                                          size_t index,
+                                          size_t elemsize);
 
 static inline __attribute__((nonnull)) void *__vec_pos(void *vec, size_t n)
 {
