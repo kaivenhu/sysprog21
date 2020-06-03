@@ -1,7 +1,10 @@
 #ifndef XVECTOR_H_
 #define XVECTOR_H_
 #include <assert.h>
+#include <math.h>
 #include <stddef.h>
+
+#define POW_FACTOR 1.5
 
 /* vector with small buffer optimization */
 #define STRUCT_BODY(type)                                                  \
@@ -11,17 +14,27 @@
         type *ptr;                                                         \
     }
 
-#define NEXT_POWER_OF_2(s) \
-    (0 == (s & (s - 1)))   \
-        ? s                \
+#ifdef POW_FACTOR
+#define STACK_SIZE(s) 4
+
+#define to_capacity(n) \
+    ((size_t) ceil(pow(POW_FACTOR, (double) n)) * STACK_SIZE(n))
+
+#else /* POW_FACTOR */
+#define STACK_SIZE(s)    \
+    (0 == (s & (s - 1))) \
+        ? s              \
         : (size_t) 1 << (64 - __builtin_clzl(s)) /* next power of 2 */
+
+#define to_capacity(n) ((size_t)(1 << n))
+#endif /* POW_FACTOR */
 
 #define v(t, s, name, ...)                                              \
     union {                                                             \
         STRUCT_BODY(t);                                                 \
         struct {                                                        \
             size_t filler;                                              \
-            t buf[NEXT_POWER_OF_2(s)];                                  \
+            t buf[STACK_SIZE(s)];                                       \
         };                                                              \
     } name __attribute__((cleanup(vec_free))) = {.buf = {__VA_ARGS__}}; \
     name.size = sizeof((__typeof__(name.buf[0])[]){0, __VA_ARGS__}) /   \
@@ -30,7 +43,7 @@
 
 #define vec_size(v) v.size
 #define vec_capacity(v) \
-    (v.on_heap ? (size_t) 1 << v.capacity : sizeof(v.buf) / sizeof(v.buf[0]))
+    (v.on_heap ? to_capacity(v.capacity) : sizeof(v.buf) / sizeof(v.buf[0]))
 
 #define vec_data(v) (v.on_heap ? v.ptr : v.buf) /* always contiguous buffer */
 

@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -17,6 +18,15 @@ __attribute__((nonnull)) void vec_free(void *p)
 static inline int ilog2(size_t n)
 {
     return 64 - __builtin_clzl(n) - ((n & (n - 1)) == 0);
+}
+
+static inline size_t expand_capacity(size_t c __attribute__((unused)))
+{
+#ifdef POW_FACTOR
+    return 1;
+#else  /* POW_FACTOR */
+    return ilog2(c) + 1;
+#endif /* POW_FACTOR */
 }
 
 __attribute__((nonnull)) void __vec_reserve(void *vec,
@@ -61,12 +71,13 @@ __attribute__((nonnull)) void __vec_push_back(void *restrict vec,
 
     if (v->on_heap) {
         if (v->size == capacity)
-            v->ptr = realloc(v->ptr, elemsize * (size_t) 1 << ++v->capacity);
+            v->ptr = realloc(v->ptr, elemsize * to_capacity(++v->capacity));
         memcpy(&v->ptr[v->size++ * elemsize], e, elemsize);
     } else {
         if (v->size == capacity) {
             void *tmp =
-                malloc(elemsize * (size_t) 1 << (v->capacity = capacity + 1));
+                malloc(elemsize *
+                       to_capacity((v->capacity = expand_capacity(capacity))));
             memcpy(tmp, v->buf, elemsize * v->size);
             v->ptr = tmp;
             v->on_heap = 1;
@@ -95,12 +106,13 @@ __attribute__((nonnull)) void __vec_insert(void *restrict vec,
 
     if (v->on_heap) {
         if (v->size == capacity)
-            v->ptr = realloc(v->ptr, elemsize * (size_t) 1 << ++v->capacity);
+            v->ptr = realloc(v->ptr, elemsize * to_capacity(++v->capacity));
         ptr = v->ptr;
     } else {
         if (v->size == capacity) {
             void *tmp =
-                malloc(elemsize * (size_t) 1 << (v->capacity = capacity + 1));
+                malloc(elemsize *
+                       to_capacity((v->capacity = expand_capacity(capacity))));
             memcpy(tmp, v->buf, elemsize * v->size);
             v->ptr = tmp;
             v->on_heap = 1;

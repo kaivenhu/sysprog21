@@ -1,6 +1,7 @@
 
 FLAGS := -g -Wall -W -Werror
 CFLAGS += -std=gnu11 $(FLAGS)
+LDFLAGS += -lm
 
 CSRC = $(wildcard ./*.c)
 COBJ = $(CSRC:.c=.o)
@@ -12,7 +13,7 @@ RESULT = result.dat
 all: $(EXE)
 
 $(EXE): $(COBJ)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(COBJ): %.o:%.c
 	$(CC) $(CFLAGS) -c -o $@ $^
