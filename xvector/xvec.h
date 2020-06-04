@@ -4,8 +4,6 @@
 #include <math.h>
 #include <stddef.h>
 
-#define POW_FACTOR 1.5
-
 /* vector with small buffer optimization */
 #define STRUCT_BODY(type)                                                  \
     struct {                                                               \

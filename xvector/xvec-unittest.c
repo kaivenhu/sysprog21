@@ -3,8 +3,10 @@
 #include <string.h>
 
 #include "xvec.h"
+#include "utime.h"
 
 #define OPTION_CHECK "check"
+#define OPTION_BENCHMARK "benchmark"
 
 void check(void)
 {
@@ -65,23 +67,70 @@ void check(void)
         vec_erase(vec3, 1);
         display(vec3);
     }
-
 #undef display
 }
 
+static inline void cal_time(const unsigned int run,
+                            const double t,
+                            double *mean,
+                            double *var)
+{
+    double delta = t - *mean;
+    *mean += (delta / (double) run);
+    *var += delta * (t - *mean);
+}
+
+#define INSERT_SIZE (1024*64)
+#define INSERT_BASE 1024
+#define INSERT_STEP 32
+
+typedef struct BenchmarkResult {
+    double mean[INSERT_SIZE/INSERT_STEP];
+    double var[INSERT_SIZE/INSERT_STEP];
+} BenchmarkResult;
+
+void benchmark(void)
+{
+    struct timespec prev_t, cur_t;
+    BenchmarkResult result;
+    memset(&result, 0, sizeof(result));
+
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < INSERT_SIZE; j += INSERT_STEP) {
+            v(int, 1, vec);
+            clock_gettime(CLOCK_BOOTTIME, &prev_t);
+            for (int k = 0; k < (j + INSERT_BASE); ++k) {
+                vec_push_back(vec, k);
+            }
+            clock_gettime(CLOCK_BOOTTIME, &cur_t);
+            cal_time(i + 1,
+                     (double) timespec_to_ns(timespec_diff(prev_t, cur_t)),
+                     &(result.mean[j/INSERT_STEP]), &(result.var[j/INSERT_STEP]));
+        }
+    }
+    for (int i = 0; i < INSERT_SIZE; i+=INSERT_STEP) {
+        printf("%3d %lf %lf\n", i + INSERT_BASE, result.mean[i/INSERT_STEP], result.var[i/INSERT_STEP]);
+    }
+}
+
+void help(const char *name)
+{
+    printf("Usage : %s [%s|%s]\n", name, OPTION_CHECK, OPTION_BENCHMARK);
+    exit(1);
+}
 
 int main(int argc, char *argv[])
 {
     if (2 > argc || NULL == argv[1]) {
-        printf("Usage : %s [%s]\n", argv[0], OPTION_CHECK);
-        exit(1);
+        help(argv[0]);
     }
 
     if (0 == strcmp(argv[1], OPTION_CHECK)) {
         check();
+    } else if (0 == strcmp(argv[1], OPTION_BENCHMARK)) {
+        benchmark();
     } else {
-        printf("Usage : %s [%s]\n", argv[0], argv[1]);
-        exit(1);
+        help(argv[0]);
     }
     return 0;
 }
