@@ -15,19 +15,21 @@
 typedef enum ASYNC_EVT { ASYNC_INIT = 0, ASYNC_DONE = -1 } async;
 
 /* Declare the async state */
-#define async_state unsigned int _async_kcont
+#define async_state int _async_kcont
 struct async {
     async_state;
 };
 
 /* Mark the start of an async subroutine */
-#define async_begin(k) XXX1 XXX2
+#define async_begin(k)              \
+    switch ((k)->_async_kcont) {    \
+    case 0:
 
 /* Mark the end of a generator thread */
-#define async_end          \
-    default:               \
-        return ASYNC_DONE; \
-        }
+#define async_end                   \
+    default:                        \
+        return ASYNC_DONE;          \
+    }
 
 /* Wait until the condition succeeds */
 #define await(cond) await_while(!(cond))
@@ -78,7 +80,7 @@ struct async_sem {
 #define await_sem(s)           \
     do {                       \
         await((s)->count > 0); \
-        XXX3;                  \
+        --(s)->count;          \
     } while (0)
 
 /**
@@ -90,7 +92,7 @@ struct async_sem {
  *
  * \param s A pointer to the object representing the semaphore.
  */
-#define signal_sem(s) XXX4
+#define signal_sem(s) ++(s)->count
 
 /* Use case */
 
