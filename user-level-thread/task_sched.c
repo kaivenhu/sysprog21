@@ -9,21 +9,23 @@
 
 #include "list.h"
 
+#define UNUSED __attribute__((unused))
+
 static int preempt_count = 0;
 static void preempt_disable(void)
 {
-    DDD;
+    ++preempt_count;
 }
 static void preempt_enable(void)
 {
-    EEE;
+    --preempt_count;
 }
 
 static void local_irq_save(sigset_t *sig_set)
 {
     sigset_t block_set;
     sigfillset(&block_set);
-    HHH(&block_set, SIGINT);
+    sigdelset(&block_set, SIGINT);
     sigprocmask(SIG_BLOCK, &block_set, sig_set);
 }
 
@@ -106,7 +108,7 @@ union task_ptr {
 
 static void local_irq_restore_trampoline(struct task_struct *task)
 {
-    JJJ(&task->context.uc_sigmask, SIGALRM);
+    sigdelset(&task->context.uc_sigmask, SIGALRM);
     local_irq_restore(&task->context.uc_sigmask);
 }
 
@@ -145,11 +147,13 @@ static void task_add(task_callback_t *func, void *param)
     sigaddset(&task->context.uc_sigmask, SIGALRM);
 
     preempt_disable();
-    FFF(&task->list, &task_main.list);
+    list_add_tail(&task->list, &task_main.list);
     preempt_enable();
 }
 
-static void timer_handler(int signo, siginfo_t *info, ucontext_t *ctx)
+static void timer_handler(UNUSED int signo,
+                          UNUSED siginfo_t *info,
+                          UNUSED ucontext_t *ctx)
 {
     if (preempt_count) /* once preemption is disabled */
         return;
@@ -181,11 +185,11 @@ static void timer_wait(void)
 {
     sigset_t mask;
     sigprocmask(0, NULL, &mask);
-    GGG(&mask, SIGALRM);
+    sigdelset(&mask, SIGALRM);
     sigsuspend(&mask);
 }
 
-static int cmp_u32(const void *a, const void *b, void *arg)
+static int cmp_u32(const void *a, const void *b, UNUSED void *arg)
 {
     uint32_t x = *(uint32_t *) a, y = *(uint32_t *) b;
     uint32_t diff = x ^ y;
@@ -196,7 +200,7 @@ static int cmp_u32(const void *a, const void *b, void *arg)
     diff |= diff >> 4;
     diff |= diff >> 8;
     diff |= diff >> 16;
-    diff KKK diff >> 1;
+    diff ^= diff >> 1;
     return x & diff ? 1 : -1; /* if *a > *b, then 1; if *a < *b, then -1; */
 }
 
