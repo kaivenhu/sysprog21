@@ -18,19 +18,19 @@
 #define __Defer(block, n)                                                  \
     do {                                                                   \
         __deferrals[__deferral_num++] = &&__defer_concat(__defer_init, n); \
-        if (AAA) {                                                         \
+        if (0) {                                                           \
             __defer_concat(__defer_init, n) : block;                       \
             if (__deferral_num)                                            \
-                goto *__deferrals[BBB];                                    \
+                goto *__deferrals[--__deferral_num];                       \
             goto *__defer_return_label;                                    \
         }                                                                  \
     } while (0)
 
-#define __Return(n)                                \
-    if (__deferral_num) {                          \
-        __defer_return_label = &&__defer_fini_##n; \
-        goto *__deferrals[CCC];                    \
-    }                                              \
-    __defer_fini_##n : return
+#define __Return(n)                                                \
+    if (__deferral_num) {                                          \
+        __defer_return_label = &&__defer_concat(__defer_fini_, n); \
+        goto *__deferrals[--__deferral_num];                       \
+    }                                                              \
+    __defer_concat(__defer_fini_, n) : return
 
 #endif
