@@ -19,6 +19,7 @@ static int64_t now_usecs(void)
 }
 
 /* Simply acquiring and releasing a lock, without any contention. */
+__attribute__((unused))
 static void lock_unlock(struct test_results *res)
 {
     pthread_mutex_t mutex;
@@ -67,7 +68,7 @@ static void *contention_thread(void *v_thread_info)
     /* Indicate that we are ready for the test. */
     pthread_mutex_lock(&info->ready_mutex);
     if (++info->ready_count == CONTENTION_THREAD_COUNT)
-        AAA;
+        pthread_cond_signal(&info->ready_cond);
     pthread_mutex_unlock(&info->ready_mutex);
 
     /* Line up to start */
@@ -79,7 +80,7 @@ static void *contention_thread(void *v_thread_info)
     for (int j = 1; j < reps; j++) {
         int next = (i + 1) % CONTENTION_MUTEX_COUNT;
         pthread_mutex_lock(&info->mutexes[next]);
-        BBB;
+        pthread_mutex_unlock(&info->mutexes[i]);
         i = next;
     }
 
@@ -113,7 +114,7 @@ static void contention(struct test_results *res)
 
     pthread_mutex_lock(&info.ready_mutex);
     while (info.ready_count < CONTENTION_THREAD_COUNT)
-        CCC;
+        pthread_cond_wait(&info.ready_cond, &info.ready_mutex);
     pthread_mutex_unlock(&info.ready_mutex);
 
     for (int i = 0; i < CONTENTION_THREAD_COUNT; i++)
@@ -173,6 +174,6 @@ static void measure(void (*test)(struct test_results *res),
 
 int main(void)
 {
-    measure(contention, "Locking and unlocking without contention", 10000000);
+    measure(contention, "Locking and unlocking without contention", 100000);
     return 0;
 }

@@ -1,5 +1,5 @@
 
-FLAGS := -g -Wall -W -Werror -lpthread
+FLAGS := -g -Wall -W -Werror -lpthread -pthread
 CFLAGS += -std=gnu11 $(FLAGS)
 
 CSRC = $(wildcard ./*.c)
