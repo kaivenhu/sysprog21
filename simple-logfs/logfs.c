@@ -12,12 +12,12 @@ struct mylog {
     ssize_t buf_write_size;
 };
 
-static struct mylog *mylog = NULL;
+static struct mylog *GLOG = NULL;
 
 static int mylog_open(struct inode *inode, struct file *file)
 {
-    file->private_data = mylog;
-    printk("client: %s (%d)\n", current->comm, current->pid);
+    file->private_data = GLOG;
+    printk("client: %s (%d) open mylog\n", current->comm, current->pid);
 
     return 0;
 }
@@ -25,13 +25,11 @@ static int mylog_open(struct inode *inode, struct file *file)
 static int mylog_release(struct inode *inode, struct file *file)
 {
     struct mylog *mylog = file->private_data;
-
-    ClearPageReserved(virt_to_page(mylog->buff));
-    kfree(mylog->buff);
-    kfree(mylog);
+    printk("client: %s (%d) release mylog\n", current->comm, current->pid);
 
     return 0;
 }
+
 
 static int mylog_mmap(struct file *file, struct vm_area_struct *vma)
 {
@@ -39,6 +37,7 @@ static int mylog_mmap(struct file *file, struct vm_area_struct *vma)
     unsigned long pfn_start =
         (virt_to_phys(mylog->buff) >> PAGE_SHIFT) + vma->vm_pgoff;
     unsigned long size = vma->vm_end - vma->vm_start;
+    printk("client: %s (%d) mmap mylog\n", current->comm, current->pid);
 
     return remap_pfn_range(vma, vma->vm_start, pfn_start, size,
                            vma->vm_page_prot);
@@ -61,19 +60,19 @@ static int __init mylog_init(void)
 {
     int ret = 0;
 
-    mylog = kzalloc(sizeof(struct mylog), GFP_KERNEL);
-    if (!mylog) {
+    GLOG = kzalloc(sizeof(struct mylog), GFP_KERNEL);
+    if (!GLOG) {
         ret = -ENOMEM;
         goto err_mylog;
     }
 
-    mylog->buff = kzalloc(LOG_BUF_OUTPUT_BUF_SIZE, GFP_KERNEL);
-    if (!mylog->buff) {
+    GLOG->buff = kzalloc(LOG_BUF_OUTPUT_BUF_SIZE, GFP_KERNEL);
+    if (!GLOG->buff) {
         ret = -ENOMEM;
         goto err_buff;
     }
 
-    SetPageReserved(virt_to_page(mylog->buff));
+    SetPageReserved(virt_to_page(GLOG->buff));
 
     ret = misc_register(&mylog_misc);
     if (unlikely(ret)) {
@@ -84,15 +83,23 @@ static int __init mylog_init(void)
     return 0;
 
 err_register:
-    kfree(mylog->buff);
+    ClearPageReserved(virt_to_page(GLOG->buff));
+    kfree(GLOG->buff);
+    GLOG->buff = NULL;
 err_buff:
-    kfree(mylog);
+    kfree(GLOG);
+    GLOG = NULL;
 err_mylog:
     return ret;
 }
 
 static void __exit mylog_exit(void)
 {
+    ClearPageReserved(virt_to_page(GLOG->buff));
+    kfree(GLOG->buff);
+    GLOG->buff = NULL;
+    kfree(GLOG);
+    GLOG = NULL;
     misc_deregister(&mylog_misc);
 }
 
