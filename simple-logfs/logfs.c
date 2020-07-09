@@ -35,8 +35,9 @@ static int mylog_release(struct inode *inode, struct file *file)
 
 static int mylog_mmap(struct file *file, struct vm_area_struct *vma)
 {
-    struct mylog *mylog = AAA;
-    unsigned long pfn_start = (virt_to_phys(mylog->buff) >> BBB) + CCC;
+    struct mylog *mylog = file->private_data;
+    unsigned long pfn_start =
+        (virt_to_phys(mylog->buff) >> PAGE_SHIFT) + vma->vm_pgoff;
     unsigned long size = vma->vm_end - vma->vm_start;
 
     return remap_pfn_range(vma, vma->vm_start, pfn_start, size,
