@@ -7,14 +7,22 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#define PAGE_SHIFT 12
+
 #define MYLOG "/dev/mylog"
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    char buf[32] = {'\0'};
-
     int fd;
     void *map_memory = NULL;
+    int idx;
+
+    if (3 > argc || NULL == argv[1] || NULL == argv[2]) {
+        printf("Usage: user <index> <context>\n");
+        exit(1);
+    }
+
+    idx = atoi(argv[1]);
 
     errno = 0;
     fd = open(MYLOG, O_RDWR);
@@ -23,21 +31,15 @@ int main(void)
         exit(1);
     }
 
-    map_memory = mmap(NULL, 256, PROT_WRITE, MAP_SHARED, fd, 0);
+    map_memory = mmap(NULL, 32, PROT_WRITE, MAP_SHARED, fd, idx << PAGE_SHIFT);
     if (MAP_FAILED == map_memory) {
         printf("Failed to mmap, error: %d\n", errno);
         exit(1);
     }
 
-    while (0 < scanf("%s", buf)) {
-        if (0 == strcmp(buf, "exit")) {
-            break;
-        }
-        sprintf((char *) map_memory, "%s", buf);
-        memset(buf, 0, sizeof(buf));
-    }
+    sprintf((char *) map_memory, "%s", argv[2]);
 
-    munmap(map_memory, 256);
+    munmap(map_memory, 32);
 
     close(fd);
 

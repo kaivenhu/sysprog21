@@ -1,11 +1,13 @@
 #include <linux/fs.h>
+#include <linux/kobject.h>
 #include <linux/miscdevice.h>
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/slab.h>
+#include <linux/sysfs.h>
 
-#define LOG_LINE_BUF_SIZE 256
-#define LOG_BUF_OUTPUT_BUF_SIZE (LOG_LINE_BUF_SIZE * 4 * 4 * 32)
+#define LOG_LINE_BUF_SIZE 32
+#define LOG_BUF_OUTPUT_BUF_SIZE (LOG_LINE_BUF_SIZE << PAGE_SHIFT)
 
 struct mylog {
     void *buff;
@@ -39,6 +41,10 @@ static int mylog_mmap(struct file *file, struct vm_area_struct *vma)
     unsigned long size = vma->vm_end - vma->vm_start;
     printk("client: %s (%d) mmap mylog\n", current->comm, current->pid);
 
+    if (LOG_BUF_OUTPUT_BUF_SIZE < ((vma->vm_pgoff << PAGE_SHIFT) + size)) {
+        return -EINVAL;
+    }
+
     return remap_pfn_range(vma, vma->vm_start, pfn_start, size,
                            vma->vm_page_prot);
 }
@@ -49,6 +55,32 @@ static const struct file_operations mylog_fops = {
     .release = mylog_release,
     .mmap = mylog_mmap,
 };
+
+static ssize_t mylog_show(struct kobject *kobj,
+                          struct kobj_attribute *attr,
+                          char *buf)
+{
+    ssize_t len = 0;
+    for (int i = 0; i < LOG_LINE_BUF_SIZE; ++i) {
+        char tmp[32] = {'\0'};
+        len += snprintf(tmp, sizeof(tmp), "[%d]: %s\n", i,
+                        (char *) (GLOG->buff + (i << PAGE_SHIFT)));
+        strncat(buf, tmp, sizeof(tmp));
+    }
+    return len;
+}
+static struct kobj_attribute mylog_attr = __ATTR(mylog, 0444, mylog_show, NULL);
+
+static struct attribute *attrs[] = {
+    &mylog_attr.attr,
+    NULL,
+};
+
+static struct attribute_group attr_group = {
+    .attrs = attrs,
+};
+
+static struct kobject *mylog_kobj;
 
 static struct miscdevice mylog_misc = {
     .minor = MISC_DYNAMIC_MINOR,
@@ -80,8 +112,21 @@ static int __init mylog_init(void)
         goto err_register;
     }
 
+    mylog_kobj = kobject_create_and_add("mylog", kernel_kobj);
+    if (!mylog_kobj) {
+        pr_err("failed to create kobj!\n");
+        goto err_create_kobj;
+    }
+    if (sysfs_create_group(mylog_kobj, &attr_group)) {
+        pr_err("failed to create kobj!\n");
+        goto err_create_kobj;
+    }
+
+
     return 0;
 
+err_create_kobj:
+    kobject_put(mylog_kobj);
 err_register:
     ClearPageReserved(virt_to_page(GLOG->buff));
     kfree(GLOG->buff);
@@ -95,6 +140,7 @@ err_mylog:
 
 static void __exit mylog_exit(void)
 {
+    kobject_put(mylog_kobj);
     ClearPageReserved(virt_to_page(GLOG->buff));
     kfree(GLOG->buff);
     GLOG->buff = NULL;
