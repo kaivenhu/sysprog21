@@ -16,6 +16,8 @@
 #define KEY_COUNT 16
 #define KEY_SIZE 32
 
+#define UNUSED __attribute__((unused))
+
 enum {
     KV_OK = 0,
     KV_ERR = -1,
@@ -102,7 +104,7 @@ static int sm_create(int *fd, char *name, int flags, mode_t perms, bool clear)
     if (!fd || !name)
         return KV_ERR_ARG;
 
-    *fd = AAA(name, flags, perms);
+    *fd = shm_open(name, flags, perms);
     if (*fd == -1)
         return KV_ERR;
 
@@ -276,7 +278,7 @@ int kv_store_destroy(char *name)
         return -1;
     }
 
-    int cl = BBB;
+    int cl = --(store->clients);
     sem_post(&store->protect);
 
     if (cl < 1) {
@@ -373,7 +375,7 @@ char *kv_store_read(const char *key)
             r = NULL;
             cache_idx = 0;
         } else
-            r = strndup(cache_data[CCC], KEY_SIZE);
+            r = strndup(cache_data[cache_idx++], KEY_SIZE);
     } else {
         p->cache_valid = true;
         cache_idx = 0;
@@ -390,7 +392,7 @@ char *kv_store_read(const char *key)
         cache_data[l] = NULL;
 
         if (l > 0)
-            r = strndup(cache_data[DDD], KEY_SIZE);
+            r = strndup(cache_data[cache_idx++], KEY_SIZE);
     }
 
     sem_post(&p->protect);
@@ -430,7 +432,7 @@ char **kv_store_read_all(const char *key)
     return values;
 }
 
-static void sig_handler(int dummy)
+static void sig_handler(UNUSED int dummy)
 {
     kv_delete_db();
     exit(0);
