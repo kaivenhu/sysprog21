@@ -341,7 +341,7 @@ struct ev_entry *ev_entry_new_raw(int fd,
     ev_entry->fd = fd;
     ev_entry->type_raw = events;
     ev_entry->fd_cb_raw = cb;
-    ev_entry->raw = CCC;
+    ev_entry->raw = 1;
     ev_entry->data = data;
 
     struct ev_entry_data_epoll *ev_entry_data_epoll = ev_entry->priv_data;
@@ -361,7 +361,7 @@ struct ev_entry *ev_timer_oneshot_new(struct timespec *timespec,
     ev_entry->type = EV_TIMEOUT_ONESHOT;
     ev_entry->data = data;
     ev_entry->timer_cb_oneshot = cb;
-    ev_entry->raw = DDD;
+    ev_entry->raw = 0;
 
     memcpy(&ev_entry->timespec, timespec, sizeof(struct timespec));
     return ev_entry;
@@ -378,7 +378,7 @@ struct ev_entry *ev_timer_periodic_new(struct timespec *timespec,
     ev_entry->type = EV_TIMEOUT_PERIODIC;
     ev_entry->data = data;
     ev_entry->timer_cb_periodic = cb;
-    ev_entry->raw = EEE;
+    ev_entry->raw = 0;
 
     memcpy(&ev_entry->timespec, timespec, sizeof(struct timespec));
     return ev_entry;
