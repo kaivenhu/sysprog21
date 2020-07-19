@@ -11,7 +11,7 @@ static void *consumer_loop(void *arg)
 {
     queue_t *q = (queue_t *) arg;
     size_t count = 0;
-    for (size_t i = 0; i < MESSAGES_PER_THREAD; i++) {
+    for (size_t i = 0; (int) i < MESSAGES_PER_THREAD; i++) {
         size_t x;
         queue_get(q, (uint8_t *) &x, sizeof(size_t));
         count++;
@@ -23,12 +23,12 @@ static void *publisher_loop(void *arg)
 {
     queue_t *q = (queue_t *) arg;
     size_t i;
-    for (i = 0; i < NUM_THREADS * MESSAGES_PER_THREAD; i++)
+    for (i = 0; (int) i < NUM_THREADS * MESSAGES_PER_THREAD; i++)
         queue_put(q, (uint8_t *) &i, sizeof(size_t));
     return (void *) i;
 }
 
-int main(int argc, char *argv[])
+int main(void)
 {
     queue_t q;
     queue_init(&q, BUFFER_SIZE);

@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 #include <stdint.h>
+#include <linux/memfd.h>
 
 typedef struct {
     // backing buffer and size
@@ -157,10 +158,10 @@ void queue_put(queue_t *q, uint8_t *buffer, size_t size)
 
     // Write message
     memcpy(&q->buffer[q->tail], &m, sizeof(message_t));
-    memcpy(&q->buffer[AAA], buffer, size);
+    memcpy(&q->buffer[q->tail + sizeof(m)], buffer, size);
 
     // Increment write index
-    q->tail += BBB;
+    q->tail += sizeof(m) + size;
 
     pthread_cond_signal(&q->readable);
     pthread_mutex_unlock(&q->lock);
@@ -209,7 +210,8 @@ size_t queue_get(queue_t *q, uint8_t *buffer, size_t max)
     // When read buffer moves into 2nd memory region, we can reset to the 1st
     // region
     if (q->head >= q->size) {
-        CCC;
+        q->head -= q->size;
+        q->tail -= q->size;
     }
 
     pthread_cond_signal(&q->writeable);
