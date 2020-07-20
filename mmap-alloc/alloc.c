@@ -68,9 +68,10 @@ static struct page_header *naive_malloc_internal(size_t size)
     /* size in bytes of a page of memory */
     size_t page_size = get_page_size();
     /* number of pages to allocate */
-    size_t pages = AAA;
+    size_t pages = (size + sizeof(struct page_header)) / page_size + 1;
     size_t mmap_size = pages * page_size;
-    void *ptr = mmap(0, mmap_size, BBB, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    void *ptr = mmap(0, mmap_size, PROT_READ | PROT_WRITE,
+                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (ptr == MAP_FAILED)
         return NULL;
 
