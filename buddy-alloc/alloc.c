@@ -100,7 +100,7 @@ static uint8_t node_is_split[(1 << (BUCKET_COUNT - 1)) / 8];
 /* This is the starting address of the address range for this allocator. Every
  * returned allocation will be an offset of this pointer from 0 to MAX_ALLOC.
  */
-static uint8_t *base_ptr;
+static uint8_t *base_ptr = NULL;
 
 /* This is the maximum address that has ever been used by the allocator. It's
  * used to know when to call "brk" to request more memory from the kernel.
@@ -202,7 +202,7 @@ static int parent_is_split(size_t index)
 static void flip_parent_is_split(size_t index)
 {
     index = (index - 1) / 2;
-    A1
+    node_is_split[index / 8] ^= 1 << (index % 8);
 }
 
 /*
@@ -215,7 +215,8 @@ static size_t bucket_for_request(size_t request)
     size_t size = MIN_ALLOC;
 
     while (size < request) {
-        A2
+        --bucket;
+        size <<= 1;
     }
 
     return bucket;
@@ -258,7 +259,7 @@ static int lower_bucket_limit(size_t bucket)
         if (!update_max_ptr(right_child + sizeof(list_t)))
             return 0;
         list_push(&buckets[bucket_limit], (list_t *) right_child);
-        A3;
+        list_init(&buckets[--bucket_limit]);
 
         /*
          * Set the grandparent's SPLIT flag so if we need to lower the
@@ -273,7 +274,7 @@ static int lower_bucket_limit(size_t bucket)
     return 1;
 }
 
-void *malloc(size_t request)
+void *bmalloc(size_t request)
 {
     size_t original_bucket, bucket;
 
@@ -346,7 +347,7 @@ void *malloc(size_t request)
              */
             if (!lower_bucket_limit(bucket - 1))
                 return NULL;
-            A4;
+            ptr = (uint8_t *) list_pop(&buckets[bucket]);
         }
 
         /*
@@ -402,7 +403,7 @@ void *malloc(size_t request)
     return NULL;
 }
 
-void free(void *ptr)
+void bfree(void *ptr)
 {
     size_t bucket, i;
 
@@ -451,7 +452,7 @@ void free(void *ptr)
          * add the merged parent to its free list yet. That will be done once
          * after this loop is finished.
          */
-        A5;
+        list_remove((list_t *) ptr_for_node(((i - 1) ^ 1) + 1, bucket));
         i = (i - 1) / 2;
         bucket--;
     }
@@ -468,17 +469,43 @@ void free(void *ptr)
 #include <assert.h>
 #include <stdio.h>
 
-int main(int argc, char **argv)
+int main(void)
 {
+    void *a = NULL;
+    void *a2 = NULL;
     printf("Allocate 64\n");
-    void *a = malloc(64);
-    assert(a);
+    void *a1 = bmalloc(64);
+    assert(a1);
 
     printf("Allocate 100\n");
-    a = malloc(100);
+    a = bmalloc(100);
+    assert(a);
+    bfree(a);
+
+    a = bmalloc(32);
+    assert(a);
+    bfree(a);
+
+    a = bmalloc(128);
+    assert(a);
+    bfree(a);
+
+    a = bmalloc(100);
     assert(a);
 
+    bfree(a1);
+    a1 = bmalloc(16);
+    assert(a1);
+    bfree(a1);
+
+    a1 = bmalloc(100);
+    assert(a1);
+
+
     printf("Allocate 10000\n");
-    a = malloc(10000);
-    assert(a);
+    a2 = bmalloc(10000);
+    assert(a2);
+    bfree(a2);
+    bfree(a1);
+    bfree(a);
 }
