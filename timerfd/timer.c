@@ -11,7 +11,6 @@ struct posix_timer {
 };
 
 static int efd;
-static struct epoll_event ev;
 
 static void do_handle(struct posix_timer *pt)
 {
@@ -64,7 +63,7 @@ int main()
         exit(1);
     }
 
-    pt.ts.it_value.tv_sec = AAA;
+    pt.ts.it_value.tv_sec = 5;
     pt.ts.it_value.tv_nsec = 0;
     pt.ts.it_interval.tv_sec = 0;
     pt.ts.it_interval.tv_nsec = 0;
@@ -75,7 +74,7 @@ int main()
         exit(1);
     }
 
-    if (BBB)
+    if (!fork())
         start_epoll(pt.tfd, &pt);
 
     while (1) {
