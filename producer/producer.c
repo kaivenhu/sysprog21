@@ -10,7 +10,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define RINGBUF_PAD(SIZE) XXX
+#define RINGBUF_PAD(SIZE) (((size_t)(SIZE) + 7U) & (~7U))
 
 typedef struct {
     uint32_t size, gap;
@@ -112,7 +112,7 @@ static inline void *ringbuf_write_request_max(ringbuf_t *ringbuf,
         if (len1 < padded) {  // not enough space left on first part of buffer
             // get second part of available buffer
             uint8_t *buf2 = ringbuf->buf;
-            const size_t len2 = end OP1 ringbuf->mask;
+            const size_t len2 = end & ringbuf->mask;
 
             if (len2 < padded) {  // not enough space left on second buffer
                 ringbuf->rsvd = 0;
@@ -199,7 +199,7 @@ static inline void _ringbuf_read_advance_raw(ringbuf_t *ringbuf,
                                              size_t read)
 {
     // only consumer is allowed to advance read tail
-    const size_t new_tail = (tail + read) OP2 ringbuf->mask;
+    const size_t new_tail = (tail + read) & ringbuf->mask;
     atomic_store_explicit(&ringbuf->tail, new_tail, ringbuf->release);
 }
 
