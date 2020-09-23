@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -11,13 +12,13 @@ void add_entry(node_t **head, int new_value)
     node_t **indirect = head;
 
     node_t *new_node = malloc(sizeof(node_t));
+    assert(new_node);
     new_node->value = new_value;
     new_node->next = NULL;
 
-    AA1;
     while (*indirect)
         indirect = &(*indirect)->next;
-    AA2;
+    *indirect = new_node;
 }
 
 node_t *find_entry(node_t *head, int value)
@@ -41,9 +42,10 @@ void remove_entry(node_t **head, node_t *entry)
 
 node_t *swap_pair(node_t *head)
 {
-    for (node_t **node = &head; *node && (*node)->next; BB1) {
+    for (node_t **node = &head; *node && (*node)->next;
+         node = &((*node)->next->next)) {
         node_t *tmp = *node;
-        BB2;
+        *node = (*node)->next;
         tmp->next = (*node)->next;
         (*node)->next = tmp;
     }
@@ -55,7 +57,8 @@ node_t *reverse(node_t *head)
     node_t *cursor = NULL;
     while (head) {
         node_t *next = head->next;
-        CCC;
+        head->next = cursor;
+        cursor = head;
         head = next;
     }
     return cursor;
@@ -68,7 +71,7 @@ void print_list(node_t *head)
     printf("\n");
 }
 
-int main(int argc, char const *argv[])
+int main(void)
 {
     node_t *head = NULL;
 
