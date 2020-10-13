@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <ctype.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -10,6 +11,16 @@
     do {                                                                       \
         uint32_t ret = 0;                                                      \
         if (ans != (ret = quickmod(x))) {                                      \
+            printf("Failed with x: %u, ret: %u, ans: %u on line %d\n", x, ret, \
+                   ans, __LINE__);                                             \
+            exit(1);                                                           \
+        }                                                                      \
+    } while (0)
+
+#define div_checker(ans, x)                                                    \
+    do {                                                                       \
+        bool ret = 0;                                                          \
+        if (ans != (ret = divisible(x))) {                                     \
             printf("Failed with x: %u, ret: %u, ans: %u on line %d\n", x, ret, \
                    ans, __LINE__);                                             \
             exit(1);                                                           \
@@ -36,8 +47,23 @@ void quickmod_tester(void)
     printf("Test quickmode is PASS !!!\n");
 }
 
+bool divisible(uint32_t n)
+{
+    return (n * M) <= (M - 1);
+}
+
+void divisible_tester(void)
+{
+    for (uint32_t i = 0; i < 0xFFFFFFFF; ++i) {
+        div_checker(!(i % D), i);
+    }
+    div_checker(!(0xFFFFFFFF % D), 0xFFFFFFFF);
+    printf("Test divisible is PASS !!!\n");
+}
+
 int main(void)
 {
     quickmod_tester();
+    divisible_tester();
     return 0;
 }
