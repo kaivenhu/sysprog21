@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <nmmintrin.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -96,70 +97,96 @@ static bool is_alphabet(const char *str, size_t size)
     return true;
 }
 
-static void is_aphabet_tester(void)
+static bool is_alphabet_sse(const char *str, size_t size)
+{
+    const __m128i range =
+        _mm_setr_epi8('a', 'z', 'A', 'Z', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    size_t i = 0;
+    while ((i + 16) <= size) {
+        const __m128i m = _mm_loadu_si128((__m128i *) (str + i));
+        if (16 != _mm_cmpistri(range, m,
+                               _SIDD_CMP_RANGES | _SIDD_NEGATIVE_POLARITY)) {
+            return false;
+        }
+        i += 16;
+    }
+    size -= i;
+    if (size) {
+        const __m128i m = _mm_loadu_si128((__m128i *) (str + i));
+        if (size != (size_t) _mm_cmpistri(
+                        range, m, _SIDD_CMP_RANGES | _SIDD_NEGATIVE_POLARITY)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static void is_aphabet_tester(const char *key,
+                              bool (*func)(const char *, size_t))
 {
     char str[135] = {'\0'};
     for (int c = 65; c <= 90; ++c) {
         for (int i = 0; i < 135; ++i) {
             str[i] = (char) c;
         }
-        ascii_checker(true, str, is_alphabet);
+        ascii_checker(true, str, func);
     }
     for (int c = 97; c <= 122; ++c) {
         for (int i = 0; i < 135; ++i) {
             str[i] = (char) c;
         }
-        ascii_checker(true, str, is_alphabet);
+        ascii_checker(true, str, func);
     }
 
     for (int c = 0; c < 65; ++c) {
         for (int i = 0; i < 16; ++i) {
             str[i] = (char) c;
-            ascii_checker(false, str, is_alphabet);
+            ascii_checker(false, str, func);
             str[i] = 'A';
         }
         for (int i = 128; i < 135; ++i) {
             str[i] = (char) c;
-            ascii_checker(false, str, is_alphabet);
+            ascii_checker(false, str, func);
             str[i] = 'A';
         }
     }
-    ascii_checker(true, str, is_alphabet);
+    ascii_checker(true, str, func);
 
     for (int c = 91; c < 97; ++c) {
         for (int i = 0; i < 16; ++i) {
             str[i] = (char) c;
-            ascii_checker(false, str, is_alphabet);
+            ascii_checker(false, str, func);
             str[i] = 'A';
         }
         for (int i = 128; i < 135; ++i) {
             str[i] = (char) c;
-            ascii_checker(false, str, is_alphabet);
+            ascii_checker(false, str, func);
             str[i] = 'A';
         }
     }
-    ascii_checker(true, str, is_alphabet);
+    ascii_checker(true, str, func);
 
     for (int c = 123; c < 256; ++c) {
         for (int i = 0; i < 16; ++i) {
             str[i] = (char) c;
-            ascii_checker(false, str, is_alphabet);
+            ascii_checker(false, str, func);
             str[i] = 'A';
         }
         for (int i = 128; i < 135; ++i) {
             str[i] = (char) c;
-            ascii_checker(false, str, is_alphabet);
+            ascii_checker(false, str, func);
             str[i] = 'A';
         }
     }
-    ascii_checker(true, str, is_alphabet);
+    ascii_checker(true, str, func);
 
-    printf("Test \"is alphabet\": PASS\n");
+    printf("Test \"is alphabet\" %s version: PASS\n", key);
 }
 
 int main(void)
 {
     is_ascii_tester();
-    is_aphabet_tester();
+    is_aphabet_tester("bitwise", is_alphabet);
+    is_aphabet_tester("sse", is_alphabet_sse);
     return 0;
 }

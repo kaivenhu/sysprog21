@@ -1,6 +1,6 @@
 
 FLAGS := -g -Wall -W -Werror
-CFLAGS += -std=gnu11 $(FLAGS)
+CFLAGS += -std=gnu11 $(FLAGS) -msse4
 
 SRC = $(wildcard ./*.c)
 EXE = $(SRC:.c=.exe)
